@@ -1,0 +1,43 @@
+#Install KEYDB
+  - name: Add KeyDB repo
+    get_url:
+      url: https://download.keydb.dev/keydb-ppa/keydb.list
+      dest: /etc/apt/sources.list.d/keydb.list
+      mode: '0644'
+
+  - name: Add KeyDB Key
+    get_url:
+      url: https://download.keydb.dev/keydb-ppa/keydb.gpg
+      dest: /etc/apt/trusted.gpg.d/keydb.gpg
+      mode: '0644'
+
+  - name: Install KeyDB package
+    apt:
+      name: keydb=6:6.0.16-1~bionic1
+      update_cache: yes
+
+  - name: Copy KeyDB config
+    copy:
+      #src: files/etc/keydb/
+      src: keydb.conf
+      dest: /etc/keydb/keydb.conf
+      owner: keydb
+      group: keydb
+      mode: 0640
+    notify:
+      - restart keydb
+
+        #- name: Install php redis
+        # apt:
+        #name: php-redis
+        #state: present
+        #notify:
+        #- restart keydb
+#    register: keydb_config
+
+#  - name: restart KeyDB with new Config
+#    service:
+#      name: keydb
+#      state: restarted
+#      enabled: yes
+#    when: keydb_config.changed

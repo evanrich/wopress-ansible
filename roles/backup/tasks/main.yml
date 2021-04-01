@@ -1,0 +1,16 @@
+# Install backup tools
+  - name: Install awscli
+    pip: 
+      name: awscli 
+      state: latest
+    sudo: yes
+
+  - name: Create .aws directory under user home for awscli config
+    file:
+      path: /home/{{ awscli_user }}/.aws
+      state: directory
+      owner: {{ awscli_user }}
+      group: {{ awscli_group }}
+      mode: '0755'
+
+

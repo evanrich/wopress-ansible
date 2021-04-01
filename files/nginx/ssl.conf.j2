@@ -1,0 +1,6 @@
+listen 443 ssl http2;
+listen [::]:443 ssl http2;
+ssl_certificate     {{ wp_ssl_live }}/{{ http_host }}/fullchain.pem;
+ssl_certificate_key     {{ wp_ssl_live }}/{{ http_host }}/key.pem;
+ssl_trusted_certificate {{ wp_ssl_live }}/{{ http_host }}/ca.pem;
+ssl_stapling_verify on;

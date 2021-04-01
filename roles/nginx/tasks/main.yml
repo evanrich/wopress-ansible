@@ -1,0 +1,64 @@
+# SET UP NGINX
+
+  # ADD WORDOPS REPO
+  - name: Add nginx repository
+    apt_repository:
+      repo: ppa:wordops/nginx-wo
+
+  - name: Install Nginx Custom Packages
+    apt:
+      name:
+        - nginx-wo
+        - nginx-custom
+      state: present
+      update_cache: true
+
+  - name: Copy nginx config folder
+    copy:
+      src: files/nginx/conf.d/
+      dest: /etc/nginx/conf.d/
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Copy nginx common folder
+    copy:
+      src: files/nginx/common/
+      dest: /etc/nginx/common/
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Copy nginx config
+    copy:
+      src: files/nginx/nginx.conf
+      dest: /etc/nginx/nginx.conf
+      owner: root
+      group: root
+      mode: 0644
+
+#  - name: Copy ssl config
+#    copy:
+#      src: files/nginx/www/
+#      dest: /var/www/evanrichardsonphotography.com/conf/nginx/
+#      owner: root
+#      group: root
+#      mode: 0644
+
+  - name: Install available site
+    template:
+      src: "files/nginx/site.j2"
+      dest: "/etc/nginx/sites-available/{{ http_host }}"
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Enable site
+    file:
+      src: /etc/nginx/sites-available/{{ http_host }}
+      dest: /etc/nginx/sites-enabled/{{ http_host }}
+      owner: root
+      group: root
+      state: link
+    notify:
+      - restart nginx

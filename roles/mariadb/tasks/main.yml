@@ -1,0 +1,75 @@
+#Setup and configure MariaDB
+  - name: Add MariaDB key
+    apt_key:
+      url: https://mariadb.org/mariadb_release_signing_key.asc
+      state: present
+
+  - name: Add MariaDB repository
+    apt_repository:
+      repo: deb [arch=amd64] http://mariadb.mirror.globo.tech/repo/10.5/ubuntu focal main
+      state: present
+      filename: mariadb
+      update_cache: true
+
+  - name: Install MariaDB Packages
+    apt:
+      name:
+        - software-properties-common
+        - mariadb-server
+        - python3-mysqldb
+      state: present
+      update_cache: true
+
+  - name: Copy MariaDB 50-server.cnf config
+    copy:
+      src: files/etc/mysql/mariadb.conf.d/
+      dest: /etc/mysql/mariadb.conf.d/
+      owner: root
+      group: root
+      backup: yes
+      mode: 0644
+    notify:
+      - restart mariadb
+#    register: mariadb_config
+
+  - name: Copy .my.cnf file with root password credentials
+    template:
+      src: .my.cnf
+      dest: /root/.my.cnf
+      owner: root
+      mode: '0600'
+
+  - name: Set MySQL root Password
+    mysql_user:
+      login_host: 'localhost'
+      login_user: 'root'
+      login_password: 'password'
+      name: 'root'
+      password: '{{ mysql_root_password }}'
+      state: present
+    when: fresh_install != "false"
+
+  - name: Creates database for WordPress
+    mysql_db:
+      name: "{{ wp_db_name }}"
+      state: present
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+
+  - name: Create MySQL user for WordPress
+    mysql_user:
+      name: "{{ wp_db_user }}"
+      password: "{{ wp_db_password }}"
+      host: localhost
+      #priv: "*.*:USAGE/{{ wp_db_name }}.*:ALL"
+      priv: >
+        "*.*:USAGE/{{ wp_db_name }}.*:SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,REFERENCES,INDEX,ALTER,CREATE\
+        TEMPORARY\ TABLES,LOCK\ TABLES,EXECUTE,CREATE\ VIEW,SHOW\ VIEW,CREATE\ ROUTINE,ALTER\ ROUTINE,EVENT,TRIGGER"
+      state: present
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+
+  - name: Download MySQL Tuner
+    get_url:
+      url: https://raw.githubusercontent.com/major/MySQLTuner-perl/master/mysqltuner.pl
+      dest: /home/{{ new_user }}

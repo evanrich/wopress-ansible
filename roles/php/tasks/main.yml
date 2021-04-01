@@ -1,0 +1,47 @@
+---
+  - name: Install PHP and Required Packages
+    apt:
+      name: 'php-{{ item }}'
+      state: present
+      update_cache: true
+    loop:
+      - bcmath
+      - cli
+      - common
+      - curl
+      - fpm
+      - gd
+      - igbinary
+      - imagick
+      - imap
+      - intl
+      - mbstring
+      - memcached
+      - msgpack
+      - mysql
+      - opcache
+      - readline
+      - redis
+      - soap
+      - xdebug
+      - xml
+      - zip
+
+  - name: Create PHP log directory
+    file:
+      path: "/var/log/php/7.4"
+      state: directory
+      owner: "root"
+      group: "root"
+      mode: '0755'
+      recurse: yes
+
+  - name: Copy PHP pool configs
+    copy:
+      src: files/php/fpm/
+      dest: /etc/php/7.4/fpm/
+      owner: root
+      group: root
+      mode: 0644
+    notify:
+      - restart php-fpm

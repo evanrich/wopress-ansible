@@ -1,0 +1,113 @@
+# WordPress Configuration
+  - name: Create Base Directories for WordPress Root
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: "www-data"
+      group: "www-data"
+      mode: '0755'
+      recurse: yes
+    loop:
+      - /var/www/{{ http_host }}/conf/nginx
+      - /var/www/{{ http_host }}/htdocs
+      - /var/www/{{ http_host }}/logs
+    when: fresh_install != "false"
+
+  - name: Create backup directory for WordPress
+    file:
+      path: "/var/www/{{ http_host }}/backup"
+      state: directory
+      owner: "root"
+      group: "root"
+      mode: '0755'
+      recurse: yes
+    when: fresh_install != "false"
+
+  - name: Download and unpack latest WordPress
+    unarchive:
+      src: https://wordpress.org/latest.tar.gz
+      dest: "/var/www/{{ http_host }}/htdocs"
+      remote_src: yes
+      extra_opts: ['--strip-components=1']
+    when: fresh_install != "false"
+
+  - name: Set ownership
+    file:
+      path: "/var/www/{{ http_host }}/htdocs"
+      state: directory
+      recurse: yes
+      owner: www-data
+      group: www-data
+      mode: '0755'
+    when: fresh_install != "false"
+
+#  - name: Fetch random salts for WordPress config
+#    shell: curl https://api.wordpress.org/secret-key/1.1/salt/
+#    register: wp_salt
+  - name: Fetch random salts for WordPress config
+    uri:
+      url: https://api.wordpress.org/secret-key/1.1/salt/
+      return_content: yes
+    register: wp_salt
+
+  - name: Set up Wordpress Config file
+    template:
+      src: "wp_config.php.j2"
+      dest: "/var/www/{{ http_host }}/{{ wp_config }}"
+      owner: www-data
+      group: www-data
+      mode: '0640'
+    when: fresh_install != "false"
+
+  - name: Set permissions for directories
+    shell: "/usr/bin/find /var/www/{{ http_host }}/htdocs -type d -exec chmod 750 {} \\;"
+    when: fresh_install != "false"
+
+#  - name: Set permissions for files
+#    shell: "/usr/bin/find /var/www/{{ http_host }}/htdocs -type f -exec chmod 640 {} \\;"
+#    when: fresh_install != "false"
+#    notify:
+#      - restart nginx
+  - name: Set ownership
+    file:
+      path: "/var/www/{{ http_host }}/htdocs"
+      state: directory
+      recurse: yes
+      owner: www-data
+      group: www-data
+      mode: '0755'
+    when: fresh_install != "false"
+    notify:
+      - restart nginx
+
+  - name: Install WP-CLI tool
+    get_url:
+      url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+      dest: /usr/local/bin/wp
+      mode: '0755'
+
+  - name: Activate wordpress
+    command: >
+      wp core install
+      --path="/var/www/{{ http_host }}/htdocs"
+      --url="https://www.{{ http_host }}"
+      --title="{{ http_host }}"
+      --admin_user="admin"
+      --admin_password="{{ wp_admin_password }}"
+      --admin_email="someuser@gmail.com"
+      --allow-root
+    when: fresh_install != "false"
+
+  - name: Install Updraft plus plugin
+    command: wp plugin install updraftplus --activate --allow-root --path=/var/www/{{ http_host }}/htdocs/
+    when: fresh_install != "false"
+
+  - name: Reset WP plugin ownership
+    file:
+      path: "/var/www/{{ http_host }}/htdocs/"
+      state: directory
+      recurse: yes
+      owner: www-data
+      group: www-data
+      mode: '0755'
+    when: fresh_install != "false"

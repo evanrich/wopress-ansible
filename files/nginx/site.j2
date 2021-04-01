@@ -1,0 +1,23 @@
+
+server {
+
+
+    server_name {{ http_host }} www.{{ http_host }};
+
+
+    access_log /var/log/nginx/{{ http_host }}.access.log rt_cache_redis;
+    error_log /var/log/nginx/{{ http_host }}.error.log;
+
+
+    root /var/www/{{ http_host }}/htdocs;
+
+    index index.php index.html index.htm;
+
+
+    include common/redis-php74.conf;
+    
+    include common/wpcommon-php74.conf;
+    include common/locations-wo.conf;
+    include /var/www/{{ http_host }}/conf/nginx/*.conf;
+
+}

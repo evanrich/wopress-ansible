@@ -1,0 +1,11 @@
+plugin: vultr
+keyed_groups:
+  - prefix: region
+    key: region | lower
+  - separator: ""
+    key: os
+  - separator: ""
+    key: tag
+  - separator: ""
+    key: power_status
+

@@ -1,0 +1,87 @@
+### LETS ENCRYPT SETUP
+
+  - name: "Create letsencrypt directory"
+    file:
+      path: "/etc/letsencrypt"
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: Clone LetsEncrypt Repo
+    git:
+      repo: https://github.com/Neilpang/acme.sh.git
+      dest: /opt/acme.sh
+      version: master
+
+  - name: "Create required directories in /etc/letsencrypt"
+    file:
+      path: "/etc/letsencrypt/{{ item }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+    loop:
+      - config
+      - renewal
+      - deploy
+      - live
+
+  - name: Install LetsEncrypt
+    command: ./acme.sh --install --home /etc/letsencrypt --config-home /etc/letsencrypt/config --cert-home /etc/letsencrypt/renewal
+    args:
+      chdir: /opt/acme.sh
+    when: fresh_install != "false"
+
+  - name: Enable LetsEncrypt Autoupgrade
+    command: ./acme.sh --config-home /etc/letsencrypt/config --upgrade --auto-upgrade
+    args:
+      chdir: /etc/letsencrypt
+    when: fresh_install != "false"
+
+  - name: Create acme-challenge directory
+    file:
+      path: "/var/www/html/.well-known/acme-challenge"
+      state: directory
+      owner: www-data
+      group: www-data
+      mode: '0777'
+
+  - name: Creates ssl directory for certs in letsencrypt life folder
+    file:
+      path: "{{ wp_ssl_live }}/{{ http_host }}"
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+      recurse: yes
+
+  - name: Issue cert
+    command: ./acme.sh --config-home /etc/letsencrypt/config --issue -d '{{ http_host }}' -w /var/www/html -k ec-384 -f
+    args:
+      chdir: /etc/letsencrypt
+    when: fresh_install != "false"
+
+  - name: Deploy Cert
+    shell: >
+      ./acme.sh
+      --config-home /etc/letsencrypt/config
+      --install-cert
+      -d '{{ http_host }}'
+      --ecc
+      --cert-file "{{ wp_ssl_live }}/{{ http_host }}/cert.pem"
+      --key-file "{{ wp_ssl_live }}/{{ http_host }}/key.pem"
+      --fullchain-file "{{ wp_ssl_live }}/{{ http_host }}/fullchain.pem"
+      --ca-file "{{ wp_ssl_live }}/{{ http_host }}/ca.pem"
+      --reloadcmd "nginx -t && service nginx restart"
+    args:
+      chdir: /etc/letsencrypt
+    when: fresh_install != "false"
+
+  - name: Copy SSL config to Site
+    template:
+      src: "files/nginx/ssl.conf.j2"
+      dest: "/var/www/{{ http_host }}/conf/nginx/ssl.conf"
+      owner: root
+      group: root
+      mode: 0644

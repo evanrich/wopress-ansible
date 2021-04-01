@@ -1,0 +1,18 @@
+- hosts: testsite
+  gather_facts: False
+  become: true
+  roles:
+    - common
+    - php
+    - nginx
+    - keydb
+    - mariadb
+ #  - letsencrypt
+   #- wordpress
+  vars:
+      - fresh_install: "{{ lookup('env', 'FRESH_INSTALL')|default('false', true) }}"
+  vars_files:
+    - vars/default.yml
+
+  handlers:
+    - include: handlers.yml

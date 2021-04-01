@@ -1,0 +1,65 @@
+### PERFORM SOME BASE CONFIG STUFF 
+
+  - name: Add my account with a bash shell
+    user:
+      name: '{{ new_user }}'
+      password: 'pEHX8FZIiJTE6xnwOgIL0'
+      shell: /bin/bash
+      groups: sudo
+      state: present
+      append: yes
+
+  - name: Set authorized key taken from file
+    authorized_key:
+      user: '{{ item }}'
+      state: present
+      key: ' {{ someuser_pub_key }}'
+    loop:
+      - root
+      - someuser
+#      - "{{ new_user }}"
+
+  - name: Set timezone variables
+    copy:
+      content: "{{ timezone }}"
+      dest: /etc/timezone
+      owner: root
+      group: root
+      mode: 0644
+      backup: yes
+    notify:
+      - update timezone
+
+  - name: Download Restic for backups
+    get_url:
+      url: https://github.com/restic/restic/releases/download/v0.12.0/restic_0.12.0_linux_amd64.bz2
+      dest: /usr/local/bin/restic.bz2
+
+  - name: Extract Restic
+    command: bunzip2 -d restic.bz2
+    args:
+      chdir: /usr/local/bin/
+      creates: /usr/local/bin/restic
+
+  - name: Set restic permissions
+    file:
+      path: /usr/local/bin/restic
+      mode: '0775'
+
+      #  - name: Update all packages
+      #    apt:
+      #      name: "*"
+      #      state: latest
+      #      update_cache: true
+
+  - name: Install Required Packages
+    apt:
+      name: '{{ item }}'
+      state: present
+      update_cache: true
+    loop:
+      - htop
+      - vim
+      - git
+      - unzip
+      - python3-pip
